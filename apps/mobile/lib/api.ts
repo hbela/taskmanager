@@ -6,11 +6,16 @@ export const apiFetch = async (endpoint: string, options: RequestInit = {}) => {
   const session = await authClient.getSession();
   
   const headers = new Headers(options.headers);
+  
+  // Better-Auth uses cookies for session management
+  // We need to send the session token as a cookie, not as Authorization header
   if (session?.data?.session?.token) {
-    headers.set("Authorization", `Bearer ${session.data.session.token}`);
+    headers.set("Cookie", `better-auth.session_token=${session.data.session.token}`);
   }
   
   headers.set("Content-Type", "application/json");
+  headers.set("ngrok-skip-browser-warning", "true"); // Skip ngrok warning page
+
 
   const response = await fetch(`${BASE_URL}${endpoint}`, {
     ...options,

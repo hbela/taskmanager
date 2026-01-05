@@ -4,7 +4,9 @@ import { z } from 'zod';
 export const TaskSchema = z.object({
   id: z.string().uuid().optional(),
   title: z.string().min(1, 'Title is required'),
+  description: z.string().optional(),
   completed: z.boolean().default(false),
+  dueDate: z.string().datetime().optional(), // ISO 8601 datetime string
   userId: z.string()
 });
 

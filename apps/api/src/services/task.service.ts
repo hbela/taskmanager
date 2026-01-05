@@ -12,7 +12,9 @@ export class TaskService {
     return tasks.map(t => ({
       id: t.id,
       title: t.title,
+      description: t.description ?? undefined,
       completed: t.status === 'DONE',
+      dueDate: t.dueDate?.toISOString(),
       userId: t.userId
     }));
   }
@@ -25,7 +27,9 @@ export class TaskService {
     return {
       id: task.id,
       title: task.title,
+      description: task.description ?? undefined,
       completed: task.status === 'DONE',
+      dueDate: task.dueDate?.toISOString(),
       userId: task.userId
     };
   }
@@ -33,9 +37,11 @@ export class TaskService {
   async create(userId: string, data: CreateTaskRequest): Promise<Task> {
     const task = await this.prisma.task.create({
       data: {
-        id: crypto.randomUUID(), // Ensure ID is generated if DB doesn't auto-generate (schema had @id but no default usually implies uuid in app)
+        id: crypto.randomUUID(),
         title: data.title,
+        description: data.description,
         status: (data.completed ? 'DONE' : 'TODO'),
+        dueDate: data.dueDate ? new Date(data.dueDate) : null,
         userId,
         updatedAt: new Date(),
       },
@@ -43,7 +49,9 @@ export class TaskService {
     return {
       id: task.id,
       title: task.title,
+      description: task.description ?? undefined,
       completed: task.status === 'DONE',
+      dueDate: task.dueDate?.toISOString(),
       userId: task.userId
     };
   }
@@ -67,7 +75,9 @@ export class TaskService {
     return {
       id: updated.id,
       title: updated.title,
+      description: updated.description ?? undefined,
       completed: updated.status === 'DONE',
+      dueDate: updated.dueDate?.toISOString(),
       userId: updated.userId
     };
   }
@@ -83,7 +93,9 @@ export class TaskService {
 
     const updateData: any = { updatedAt: new Date() };
     if (data.title !== undefined) updateData.title = data.title;
+    if (data.description !== undefined) updateData.description = data.description;
     if (data.completed !== undefined) updateData.status = data.completed ? 'DONE' : 'TODO';
+    if (data.dueDate !== undefined) updateData.dueDate = data.dueDate ? new Date(data.dueDate) : null;
 
     const updated = await this.prisma.task.update({
       where: { id },
@@ -93,7 +105,9 @@ export class TaskService {
     return {
       id: updated.id,
       title: updated.title,
+      description: updated.description ?? undefined,
       completed: updated.status === 'DONE',
+      dueDate: updated.dueDate?.toISOString(),
       userId: updated.userId
     };
   }
