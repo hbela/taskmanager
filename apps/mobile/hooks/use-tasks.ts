@@ -11,10 +11,10 @@ export const useTasks = () => {
   });
 
   const createTaskMutation = useMutation({
-    mutationFn: (newTitle: string) => 
+    mutationFn: (newTask: { title: string; description?: string; dueDate?: string }) => 
       apiFetch("/v1/tasks", {
         method: "POST",
-        body: JSON.stringify({ title: newTitle }),
+        body: JSON.stringify(newTask),
       }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["tasks"] });

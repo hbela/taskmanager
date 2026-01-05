@@ -37,14 +37,15 @@ model session {
 }
 
 model task {
-  id          String   @id
+  id          String    @id
   title       String
   description String?
-  status      String   @default("TODO")
+  status      String    @default("TODO")
+  dueDate     DateTime?
   userId      String
-  createdAt   DateTime @default(now())
+  createdAt   DateTime  @default(now())
   updatedAt   DateTime
-  user        user     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user        user      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
 }
