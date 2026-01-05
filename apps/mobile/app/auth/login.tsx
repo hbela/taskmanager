@@ -1,16 +1,23 @@
 import { Button, Text, Snackbar } from "react-native-paper";
 import { View, StyleSheet } from "react-native";
 import { router } from "expo-router";
-import { useState } from "react";
-import { authClient } from "../../lib/auth-client"; // Import the configured auth client
-import * as WebBrowser from "expo-web-browser";
-
-// This is required for the browser to close properly after OAuth
-WebBrowser.maybeCompleteAuthSession();
+import { useState, useEffect } from "react";
+import { authClient } from "../../lib/auth-client";
 
 export default function Login() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  
+  // Watch for session changes
+  const { data: session } = authClient.useSession();
+  
+  // Redirect when session becomes available
+  useEffect(() => {
+    if (session) {
+      console.log("Session detected, redirecting to dashboard...");
+      router.replace("/(app)/");
+    }
+  }, [session]);
 
   const handleLogin = async () => {
     if (loading) return;
@@ -21,52 +28,17 @@ export default function Login() {
     try {
       console.log("Starting Google OAuth with better-auth client...");
 
-      const result = await authClient.signIn.social({
+      // The expo client plugin handles the entire OAuth flow automatically
+      // including opening the browser and handling the callback
+      await authClient.signIn.social({
         provider: "google",
-        callbackURL: "taskmanager://", // Explicitly set the callback URL
+        callbackURL: "/(app)/", // Where to redirect after successful sign-in
       });
 
-      console.log("Sign-in result:", JSON.stringify(result, null, 2));
-
-      // The result contains the OAuth URL, we need to open it
-      if (result?.data?.url && result?.data?.redirect) {
-        console.log("Opening OAuth URL in browser...");
-        
-        // Open the OAuth URL - the Expo plugin will handle the callback
-        const authResult = await WebBrowser.openAuthSessionAsync(
-          result.data.url,
-          "taskmanager://"
-        );
-        
-        console.log("Browser result:", authResult);
-        
-        if (authResult.type === "success") {
-          console.log("OAuth completed, checking session...");
-          
-          // Wait a moment for the session to be saved
-          await new Promise(resolve => setTimeout(resolve, 1000));
-          
-          // Check if we now have a session
-          const session = await authClient.getSession();
-          console.log("Session after OAuth:", session);
-          
-          if (session?.data) {
-            console.log("Sign-in successful, redirecting to app...");
-            router.replace("/(app)");
-          } else {
-            throw new Error("No session found after OAuth");
-          }
-        } else if (authResult.type === "cancel") {
-          throw new Error("Sign-in cancelled");
-        } else {
-          throw new Error("OAuth failed");
-        }
-      } else {
-        throw new Error("No authorization URL received");
-      }
+      // Note: The redirect will happen via the useEffect when session is set
+      
     } catch (e: any) {
       console.error("Login error:", e);
-      console.error("Error message:", e?.message);
       setError(e?.message || "Failed to sign in. Please try again.");
     } finally {
       setLoading(false);
