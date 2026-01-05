@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, FlatList, StyleSheet, ScrollView } from 'react-native';
 import { 
   List, 
@@ -15,6 +15,7 @@ import {
 import { useTasks } from '../../hooks/use-tasks';
 import { Stack } from 'expo-router';
 import DateTimePicker from '@react-native-community/datetimepicker';
+import { authClient } from '../../lib/auth-client';
 
 export default function MobileDashboard() {
   const { tasks, isLoading, createTask, toggleTask } = useTasks();
@@ -23,6 +24,19 @@ export default function MobileDashboard() {
   const [taskDescription, setTaskDescription] = useState("");
   const [dueDate, setDueDate] = useState<Date | null>(null);
   const [showDatePicker, setShowDatePicker] = useState(false);
+
+  // Debug: Check session on mount
+  useEffect(() => {
+    const checkSession = async () => {
+      const session = await authClient.getSession();
+      console.log("Dashboard session check:", {
+        hasSession: !!session,
+        hasToken: !!session?.data?.session?.token,
+        token: session?.data?.session?.token?.substring(0, 20) + "...",
+      });
+    };
+    checkSession();
+  }, []);
 
   const handleCreateTask = () => {
     if (!taskTitle.trim()) return;

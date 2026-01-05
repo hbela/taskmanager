@@ -32,6 +32,11 @@ export const auth = betterAuth({
     expiresIn: 60 * 60 * 24 * 7, // 7 days
     updateAge: 60 * 60 * 24, // 1 day
   },
+  advanced: {
+    cookiePrefix: "better-auth",
+    useSecureCookies: process.env.NODE_ENV === "production", // Disable secure cookies in dev for Expo
+  },
+  trustHost: true, // Allow requests from different hosts (required for mobile)
 });
 
 export type Auth = typeof auth;

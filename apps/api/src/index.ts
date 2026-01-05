@@ -40,6 +40,7 @@ await app.register(cors, {
     'http://localhost:3000',
     'http://localhost:3001',
     'http://localhost:5173', // Vite default
+    'https://f2c05ede579e.ngrok-free.app', // ngrok tunnel for mobile development
     /^taskmanager:\/\//,     // Mobile deep link
     /^exp:\/\//,             // Expo development
   ],

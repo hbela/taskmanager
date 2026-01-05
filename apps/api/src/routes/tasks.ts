@@ -11,17 +11,26 @@ export const taskRoutes: FastifyPluginAsync = async (fastify) => {
   
   // Authentication middleware using Better-Auth
   app.addHook('preHandler', async (request, reply) => {
-    // Debug logging
-    console.log('Auth Headers:', {
+    // Debug logging - parse cookies
+    const cookieHeader = request.headers.cookie || '';
+    const cookies = cookieHeader.split(';').reduce((acc, cookie) => {
+      const [key, value] = cookie.trim().split('=');
+      if (key) acc[key] = value;
+      return acc;
+    }, {} as Record<string, string>);
+
+    console.log('Auth Debug:', {
       authorization: request.headers.authorization,
-      cookie: request.headers.cookie,
+      rawCookie: cookieHeader,
+      parsedCookies: Object.keys(cookies),
+      sessionToken: cookies['better-auth.session_token'] || 'MISSING',
     });
 
     const session = await auth.api.getSession({
       headers: new Headers(request.headers as any) // Convert Fastify headers to standard Headers
     });
 
-    console.log('Session:', session);
+    console.log('Session Result:', session ? { userId: session.user.id, email: session.user.email } : 'NULL');
 
     if (!session) {
       reply.code(401).send({ error: 'Unauthorized' });
