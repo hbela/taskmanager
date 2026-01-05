@@ -1,7 +1,7 @@
 import { Redirect } from "expo-router";
 import { useEffect, useState } from "react";
+import { authClient } from "../lib/auth-client";
 import { View, ActivityIndicator } from "react-native";
-import * as SecureStore from "expo-secure-store";
 
 export default function Index() {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
@@ -12,8 +12,8 @@ export default function Index() {
 
   const checkAuth = async () => {
     try {
-      const token = await SecureStore.getItemAsync("session_token");
-      setIsAuthenticated(!!token);
+      const session = await authClient.getSession();
+      setIsAuthenticated(!!session.data);
     } catch (error) {
       console.error("Auth check error:", error);
       setIsAuthenticated(false);

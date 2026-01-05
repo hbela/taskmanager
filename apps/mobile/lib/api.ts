@@ -1,14 +1,13 @@
-import * as SecureStore from "expo-secure-store";
+import { authClient } from "./auth-client"; 
 
-const BASE_URL = process.env.EXPO_PUBLIC_API_URL || "http://192.168.1.50:3000";
+const BASE_URL = process.env.EXPO_PUBLIC_API_URL || "https://f2c05ede579e.ngrok-free.app";
 
 export const apiFetch = async (endpoint: string, options: RequestInit = {}) => {
-  // Get session token from SecureStore
-  const token = await SecureStore.getItemAsync("session_token");
+  const session = await authClient.getSession();
   
   const headers = new Headers(options.headers);
-  if (token) {
-    headers.set("Authorization", `Bearer ${token}`);
+  if (session?.data?.session?.token) {
+    headers.set("Authorization", `Bearer ${session.data.session.token}`);
   }
   
   headers.set("Content-Type", "application/json");

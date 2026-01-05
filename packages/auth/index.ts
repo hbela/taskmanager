@@ -23,7 +23,7 @@ export const auth = betterAuth({
   ],
   trustedOrigins: [
     "taskmanager://", // Mobile deep link
-    "exp://",         // Expo development
+    "exp://*",         // Expo development wildcard
     "http://localhost:3000", // Web app
     "http://localhost:3001", // Alternative web port
     "https://f2c05ede579e.ngrok-free.app", // ngrok tunnel for mobile development

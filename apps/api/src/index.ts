@@ -56,6 +56,11 @@ app.get('/health', async () => {
   return { status: 'ok', timestamp: new Date().toISOString() };
 });
 
+// Root route (for OAuth redirects)
+app.get('/', async () => {
+  return { message: 'TaskManager API', version: '1.0.0' };
+});
+
 // Register routes
 await app.register(authRoutes);
 await app.register(taskRoutes, { prefix: '/v1/tasks' });

@@ -2,14 +2,11 @@ import { Button, Text, Snackbar } from "react-native-paper";
 import { View, StyleSheet } from "react-native";
 import { router } from "expo-router";
 import { useState } from "react";
-import * as AuthSession from "expo-auth-session";
+import { authClient } from "../../lib/auth-client"; // Import the configured auth client
 import * as WebBrowser from "expo-web-browser";
-import * as SecureStore from "expo-secure-store";
 
 // This is required for the browser to close properly after OAuth
 WebBrowser.maybeCompleteAuthSession();
-
-const API_URL = process.env.EXPO_PUBLIC_API_URL || "http://192.168.1.204:3000";
 
 export default function Login() {
   const [loading, setLoading] = useState(false);
@@ -17,81 +14,59 @@ export default function Login() {
 
   const handleLogin = async () => {
     if (loading) return;
-    
+
     setLoading(true);
     setError("");
-    
+
     try {
-      console.log("Starting Google OAuth with Expo AuthSession...");
-      
-      // Step 1: Get the authorization URL from Better-Auth
-      const authResponse = await fetch(`${API_URL}/api/auth/sign-in/social`, {
-        method: "POST",
-        headers: { 
-          "Content-Type": "application/json",
-          "Origin": API_URL,
-        },
-        body: JSON.stringify({
-          provider: "google",
-          callbackURL: AuthSession.makeRedirectUri({ scheme: "taskmanager" }),
-        }),
+      console.log("Starting Google OAuth with better-auth client...");
+
+      const result = await authClient.signIn.social({
+        provider: "google",
+        callbackURL: "taskmanager://", // Explicitly set the callback URL
       });
-      
-      const authData = await authResponse.json();
-      console.log("Auth data:", authData);
-      
-      if (!authData.url) {
-        throw new Error("No authorization URL received");
-      }
-      
-      // Step 2: Open the OAuth URL in browser
-      console.log("Opening browser for OAuth...");
-      const result = await WebBrowser.openAuthSessionAsync(
-        authData.url,
-        AuthSession.makeRedirectUri({ scheme: "taskmanager" })
-      );
-      
-      console.log("OAuth result:", result);
-      
-      if (result.type === "success" && result.url) {
-        console.log("OAuth successful, callback URL:", result.url);
+
+      console.log("Sign-in result:", JSON.stringify(result, null, 2));
+
+      // The result contains the OAuth URL, we need to open it
+      if (result?.data?.url && result?.data?.redirect) {
+        console.log("Opening OAuth URL in browser...");
         
-        // Step 3: The callback URL should contain the session token
-        // Parse the URL to extract it
-        const url = new URL(result.url);
-        const token = url.searchParams.get("token");
+        // Open the OAuth URL - the Expo plugin will handle the callback
+        const authResult = await WebBrowser.openAuthSessionAsync(
+          result.data.url,
+          "taskmanager://"
+        );
         
-        if (token) {
-          console.log("Session token found in callback URL");
-          await SecureStore.setItemAsync("session_token", token);
-          console.log("Token stored, redirecting to app...");
-          router.replace("/(app)");
-        } else {
-          // Fallback: Try to get session from server
-          console.log("No token in URL, trying to fetch session from server...");
-          await new Promise(resolve => setTimeout(resolve, 2000));
+        console.log("Browser result:", authResult);
+        
+        if (authResult.type === "success") {
+          console.log("OAuth completed, checking session...");
           
-          const sessionResponse = await fetch(`${API_URL}/api/auth/get-session`);
-          const sessionData = await sessionResponse.json();
-          console.log("Session data from server:", sessionData);
+          // Wait a moment for the session to be saved
+          await new Promise(resolve => setTimeout(resolve, 1000));
           
-          if (sessionData?.session?.token) {
-            console.log("Session token found from server");
-            await SecureStore.setItemAsync("session_token", sessionData.session.token);
+          // Check if we now have a session
+          const session = await authClient.getSession();
+          console.log("Session after OAuth:", session);
+          
+          if (session?.data) {
+            console.log("Sign-in successful, redirecting to app...");
             router.replace("/(app)");
           } else {
-            throw new Error("No session token received");
+            throw new Error("No session found after OAuth");
           }
+        } else if (authResult.type === "cancel") {
+          throw new Error("Sign-in cancelled");
+        } else {
+          throw new Error("OAuth failed");
         }
-      } else if (result.type === "cancel") {
-        console.log("User cancelled OAuth");
-        setError("Sign-in cancelled");
       } else {
-        throw new Error("OAuth failed");
+        throw new Error("No authorization URL received");
       }
-      
     } catch (e: any) {
       console.error("Login error:", e);
+      console.error("Error message:", e?.message);
       setError(e?.message || "Failed to sign in. Please try again.");
     } finally {
       setLoading(false);
@@ -101,8 +76,8 @@ export default function Login() {
   return (
     <View style={styles.container}>
       <Text variant="headlineMedium" style={styles.title}>Welcome Back</Text>
-      <Button 
-        mode="contained" 
+      <Button
+        mode="contained"
         onPress={handleLogin}
         icon="google"
         style={styles.button}
