@@ -10,8 +10,15 @@ export const taskRoutes: FastifyPluginAsync = async (fastify) => {
   const app = fastify.withTypeProvider<ZodTypeProvider>();
   
   // Authentication middleware using Better-Auth
+  // Supports both cookie-based auth (web) and Bearer token auth (mobile)
   app.addHook('preHandler', async (request, reply) => {
-    // Debug logging - parse cookies
+    // Extract token from Authorization header (mobile) or Cookie (web)
+    const authHeader = request.headers.authorization;
+    const tokenFromHeader = authHeader?.startsWith('Bearer ') 
+      ? authHeader.slice(7) 
+      : null;
+
+    // Parse cookies to get session token
     const cookieHeader = request.headers.cookie || '';
     const cookies = cookieHeader.split(';').reduce((acc, cookie) => {
       const [key, value] = cookie.trim().split('=');
@@ -19,16 +26,48 @@ export const taskRoutes: FastifyPluginAsync = async (fastify) => {
       return acc;
     }, {} as Record<string, string>);
 
+    const tokenFromCookie = cookies['better-auth.session_token'];
+
+    // Prefer Bearer token (mobile), fallback to cookie (web)
+    const token = tokenFromHeader ?? tokenFromCookie;
+
     console.log('Auth Debug:', {
-      authorization: request.headers.authorization,
-      rawCookie: cookieHeader,
-      parsedCookies: Object.keys(cookies),
-      sessionToken: cookies['better-auth.session_token'] || 'MISSING',
+      hasAuthHeader: !!authHeader,
+      hasCookie: !!cookieHeader,
+      tokenSource: tokenFromHeader ? 'Bearer' : tokenFromCookie ? 'Cookie' : 'None',
+      tokenPreview: token?.substring(0, 20) + '...' || 'MISSING',
     });
 
-    const session = await auth.api.getSession({
-      headers: new Headers(request.headers as any) // Convert Fastify headers to standard Headers
-    });
+    // Get session using the token
+    let session = null;
+    
+    if (token) {
+      try {
+        // Query session directly from database using the token
+        const sessionRecord = await app.prisma.session.findUnique({
+          where: { token },
+          include: { user: true },
+        });
+
+        if (sessionRecord && sessionRecord.expiresAt > new Date()) {
+          // Session is valid and not expired
+          session = {
+            user: {
+              id: sessionRecord.user.id,
+              email: sessionRecord.user.email,
+              name: sessionRecord.user.name,
+              image: sessionRecord.user.image,
+            },
+            session: {
+              token: sessionRecord.token,
+              expiresAt: sessionRecord.expiresAt,
+            },
+          };
+        }
+      } catch (error) {
+        console.error('Session lookup error:', error);
+      }
+    }
 
     console.log('Session Result:', session ? { userId: session.user.id, email: session.user.email } : 'NULL');
 
