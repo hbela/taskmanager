@@ -1,3 +1,17 @@
+The authentication is working correctly, but after the OAuth callback, the server is redirecting to / on the API server (ngrok URL), not to your mobile app's deep link.
+
+The problem is that after successful OAuth, Better-Auth is redirecting to the API server's root / instead of back to your mobile app via the taskmanager:// deep link.
+
+The Fix
+The expo plugin needs to know where to redirect after authentication. You need to pass a callbackURL that uses your app's deep link scheme. Update your login.tsx:
+
+await authClient.signIn.social({
+  provider: "google",
+  callbackURL: "taskmanager://",  // Add this - redirect back to mobile app
+});
+
+Here's the complete updated login.tsx:
+
 import { Button, Text, Snackbar } from "react-native-paper";
 import { View, StyleSheet } from "react-native";
 import { router } from "expo-router";
@@ -8,7 +22,7 @@ export default function Login() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   
-  // Watch for session changes - this is key for the expo plugin flow
+  // Watch for session changes
   const { data: session, isPending } = authClient.useSession();
   
   // Redirect when session becomes available
@@ -28,28 +42,16 @@ export default function Login() {
     try {
       console.log("=== Starting Google OAuth with expo client plugin ===");
 
-      // The expo client plugin handles the entire OAuth flow automatically:
-      // 1. It generates and stores the state parameter
-      // 2. It opens the browser with the correct authorization URL
-      // 3. It handles the callback and extracts the session
-      // 4. It stores the session in SecureStore
-      
-      // DO NOT manually fetch or use WebBrowser - let the plugin handle it
       await authClient.signIn.social({
         provider: "google",
         callbackURL: "taskmanager://",  // ← KEY: Redirect back to mobile app
       });
 
-      // The useSession hook above will detect the session and redirect
-      // If we reach here without redirect, the flow might still be completing
       console.log("Sign-in initiated, waiting for session...");
       
     } catch (e: any) {
-      console.error("=== Login Error ===");
-      console.error("Error:", e);
-      console.error("Error message:", e?.message);
+      console.error("Login Error:", e?.message);
       
-      // Don't show error for user cancellation
       if (e?.message?.includes("cancel") || e?.message?.includes("dismiss")) {
         console.log("User cancelled sign-in");
       } else {
@@ -60,7 +62,6 @@ export default function Login() {
     }
   };
 
-  // Show loading while checking initial session
   if (isPending) {
     return (
       <View style={styles.container}>
