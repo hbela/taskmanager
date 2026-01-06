@@ -1,0 +1,15 @@
+{
+    "name": "@taskmanager/auth",
+    "version": "1.0.0",
+    "description": "Centralized Better-Auth configuration for unified authentication",
+    "main": "index.ts",
+    "types": "index.ts",
+    "dependencies": {
+        "better-auth": "^1.0.0",
+        "@better-auth/expo": "^1.0.0",
+        "@taskmanager/database": "workspace:*"
+    },
+    "devDependencies": {
+        "typescript": "^5.3.3"
+    }
+}
