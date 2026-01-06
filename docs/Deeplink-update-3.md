@@ -1,3 +1,29 @@
+The Fix
+Updated _layout.tsx with two key changes:
+1. Refetch session when app comes to foreground
+TypeScript
+useEffect(() => {
+  const handleAppStateChange = (nextAppState: AppStateStatus) => {
+    if (nextAppState === 'active') {
+      console.log("App became active, refetching session...");
+      refetch();
+    }
+  };
+  const subscription = AppState.addEventListener('change', handleAppStateChange);
+  return () => subscription.remove();
+}, [refetch]);
+2. Refetch session when deep link is received
+TypeScript
+const handleDeepLink = useCallback(async (event: { url: string }) => {
+  // Give the expo plugin a moment to store the session
+  await new Promise(resolve => setTimeout(resolve, 500));
+  
+  // Refetch the session to pick up the newly stored token
+  await refetch();
+}, [refetch]);
+
+The updated file:
+
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Stack, useRouter, useSegments } from 'expo-router';
 import { MD3LightTheme, PaperProvider } from 'react-native-paper';
