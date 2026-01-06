@@ -18,7 +18,8 @@ export const auth = betterAuth({
   },
   plugins: [
     expo({
-      baseURL: process.env.BETTER_AUTH_URL || "http://localhost:3000",
+      // IMPORTANT: This must match the mobile client's baseURL
+      baseURL: process.env.BETTER_AUTH_URL || "https://f2c05ede579e.ngrok-free.app",
     }), // Required for mobile deep linking & session propagation
   ],
   trustedOrigins: [
