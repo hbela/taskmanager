@@ -9,7 +9,9 @@ console.log("Auth Client: Initializing with API URL:", API_URL);
 export const authClient = createAuthClient({
   baseURL: API_URL,
   fetchOptions: {
-    customFetchImpl: fetch, // Use React Native's fetch
+    headers: {
+      "ngrok-skip-browser-warning": "true",  // Skip ngrok browser warning page
+    },
   },
   plugins: [
     expoClient({
